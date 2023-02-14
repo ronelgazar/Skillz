@@ -17,24 +17,21 @@ public class strategy  {
 
                     //checking if the enemy penguin group is larger than the amount of penguins on the island they're attacking
                     if(pg.penguinAmount > penguinsWhenArriving){
-                        Iceberg [] closest = utils.ClosestIceberg(game,myIceberg);
+                        Iceberg closest = Utils.findClosest(game.getMyIcebergs(),myIceberg);
 
                         //checking how many more penguins they will have once arriving at our island
                         missingPenguins = pg.penguinAmount - penguinsWhenArriving;
                         
-                        
-                        for(int i = 0; i < closest.length; i++){
-                            //the difference of when each group is arriving to the islabd
                             int turnsDiffrences = (pg.turnsTillArrival - 
-                            closest[i].getTurnsTillArrival(myIceberg));
+                            closest.getTurnsTillArrival(myIceberg));
 
                             if(turnsDiffrences > 0){
                                 missingPenguins += turnsDiffrences*myIceberg.penguinsPerTurn;
                             }
 
                             //if closesnt[i] has enough penguins to defend myisland alone, he'll do it
-                            if(closest[i].penguinAmount > missingPenguins && !utils.isUnderAttack(game, closest[i])){
-                                closest[i].sendPenguins(myIceberg, missingPenguins);
+                            if(closest.penguinAmount > missingPenguins && !Utils.isUnderAttack(game, closest)){
+                                closest.sendPenguins(myIceberg, missingPenguins);
                             }
                             // //if not other islands will help with the help (aviv told me to type that)
                             // else if(!utils.isUnerAttack(game, closest[i])){
@@ -48,16 +45,12 @@ public class strategy  {
                             //         closest[i].sendPenguins(myIceberg, closest[i].penguinAmount);
                             //     }
                             // }
-                        }
+                        
                     }
                 }
             }
         }
     }
-
-
-
-
 
 
 
@@ -252,5 +245,27 @@ public class strategy  {
             }    
         }
     }
+
+
+    public static void counterAttack(Iceberg myIceberg, Iceberg source, int enemyAmount, Iceberg[] icebergs) {
+        int penguinAmount = myIceberg.penguinAmount;
+        if (enemyAmount < myIceberg.penguinAmount) {
+            Iceberg neighbor = Utils.findClosest(icebergs, myIceberg);
+            if (myIceberg.canSendPenguins(source, myIceberg.penguinAmount - 1)) {
+                myIceberg.sendPenguins(source, myIceberg.penguinAmount - 1);
+            }
+            if (neighbor.canSendPenguins(myIceberg, enemyAmount - penguinAmount)) {
+                neighbor.sendPenguins(myIceberg, enemyAmount - penguinAmount);
+            }
+        } else {
+            Iceberg neighbor = Utils.findClosest(icebergs, myIceberg);
+            int myAmount = source.getTurnsTillArrival(myIceberg) * myIceberg.penguinsPerTurn + myIceberg.penguinAmount;
+            if (neighbor.canSendPenguins(myIceberg, enemyAmount - myAmount + 1)) {
+                neighbor.sendPenguins(myIceberg, enemyAmount - myAmount + 1);
+            }
+        }
+        
+    }
+    
 
 }

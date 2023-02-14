@@ -1,48 +1,30 @@
+import java.util.List;
+
 import penguin_game.*;
 
-public class utils {
-    public static Iceberg[] ClosestIceberg(Game game, Iceberg lonelyIceberg) {
-        Iceberg[] returningArr = new Iceberg[game.getMyIcebergs().length - 1];
-        Iceberg myIceberg;
-        int[] distanceArr = new int[game.getEnemyIcebergs().length - 1];
-        int distance = 0;
-        // going through all of my icebergs
-        int tempJ = 0;
-        for (int i = 0; i < game.getMyIcebergs().length; i++) {
-            myIceberg = game.getMyIcebergs()[i];
-            if (myIceberg != lonelyIceberg) {
-                tempJ++;
-                distanceArr[tempJ] = myIceberg.getTurnsTillArrival(lonelyIceberg);
+public class Utils {
+    public static Iceberg findClosest(Iceberg[] icebergs, Iceberg iceberg) {
+        Iceberg closestIceberg = null;
+        int minDistance = Integer.MAX_VALUE;
+        
+        for (Iceberg myIceberg : icebergs) {
+            if (myIceberg.equals(iceberg)) {
+                continue; // skip the same iceberg
+            }
+            
+            int distance = myIceberg.getTurnsTillArrival(iceberg) + 1;
+            
+            if (distance < minDistance) {
+                closestIceberg = myIceberg;
+                minDistance = distance;
             }
         }
-
-        // sorting the array
-        for (int q = 0; q < distanceArr.length; q++) {
-            for (int p = 1; p < distanceArr.length; p++) {
-                if (distanceArr[q] > distanceArr[p]) {
-                    int temp = distanceArr[q];
-                    distanceArr[q] = distanceArr[p];
-                    distanceArr[p] = temp;
-                }
-            }
-        }
-
-        // compering distance to iceberg
-        for (int i = 0; i < game.getMyIcebergs().length; i++) {
-            Iceberg myIceberg2 = game.getMyIcebergs()[i];
-            if (myIceberg2 != lonelyIceberg) {
-                for (int frog = 0; frog < distanceArr.length; frog++) {
-                    // checking if myIceberg2 is the same iceberg as game.getMyIcebergs()[frog]
-                    if (distanceArr[frog] == myIceberg2.getTurnsTillArrival(lonelyIceberg)) {
-                        returningArr[i] = myIceberg2;
-                    }
-                }
-            }
-        }
-        return returningArr;
+        
+        return closestIceberg;
     }
+    
 
-public static boolean isUnderAttack(Game game, Iceberg attackedIceberg) {
+    public static boolean isUnderAttack(Game game, Iceberg attackedIceberg) {
         if (game.getEnemyPenguinGroups().length > 0) {
             for (PenguinGroup pg : game.getEnemyPenguinGroups()) {
                 if (pg.destination == attackedIceberg)
@@ -51,30 +33,50 @@ public static boolean isUnderAttack(Game game, Iceberg attackedIceberg) {
         }
         return false;
     }
-
-    public void accStart(Game game) {
-        // checking if both me and the enemy have sent penguins
-        if (game.getEnemyPenguinGroups().length != 0 &&
-                game.getMyPenguinGroups().length != 0) {
-            // going through all of the enemy's penguin groups
-            for (PenguinGroup ePG : game.getEnemyPenguinGroups()) {
-                // going through all of my penguin groups
-                for (PenguinGroup mPG : game.getMyPenguinGroups()) {
-                    if (ePG.destination == mPG.destination) {
-                        // going through all of my icebergs
-                        for (Iceberg myIceberg : game.getMyIcebergs()) {
-                            if (mPG.destination == myIceberg) {
-                                if (ePG.currentSpeed > mPG.currentSpeed) {
-                                    mPG.accelerate();
-                                }
-                            }
-                            // else if(){
-                            // help our attacking penguin group
-                        }
-
-                    }
-                }
+    
+    public static  boolean alreadySent(Game game, Iceberg dest) {
+        for (PenguinGroup group : game.getMyPenguinGroups()) {
+            if (group.destination == dest) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    public static void sendEnemy(Game game,Iceberg source, Iceberg dest) {
+        int amount = dest.penguinsPerTurn * source.getTurnsTillArrival(dest) + dest.penguinAmount + 1;
+        if (source.canSendPenguins(dest, amount)) {
+            source.sendPenguins(dest, amount);
+            PenguinGroup pg = game.getMyPenguinGroups()[0];
+            if (pg.penguinAmount > 5) {
+                pg.accelerate();
             }
         }
     }
+    
+    public static void counterAttack(Game game,Iceberg myIceberg, Iceberg source, int enemyAmount, Iceberg[] icebergs) {
+        int penguinAmount = myIceberg.penguinAmount;
+        if (myIceberg == game.getAllIcepitalIcebergs()[0]) {
+            if (myIceberg.canSendPenguins(source, myIceberg.penguinAmount - 1)) {
+                myIceberg.sendPenguins(source, myIceberg.penguinAmount - 1);
+            }
+        }
+        if (enemyAmount < myIceberg.penguinAmount) {
+            Iceberg neighbor = findClosest(icebergs, myIceberg);
+            if (myIceberg.canSendPenguins(source, myIceberg.penguinAmount - 1)) {
+                myIceberg.sendPenguins(source, myIceberg.penguinAmount - 1);
+            }
+            if (neighbor.canSendPenguins(myIceberg, enemyAmount - penguinAmount)) {
+                neighbor.sendPenguins(myIceberg, enemyAmount - penguinAmount);
+            }
+        } else {
+            Iceberg neighbor = findClosest(icebergs, myIceberg);
+            int myAmount = source.getTurnsTillArrival(myIceberg) * myIceberg.penguinsPerTurn + myIceberg.penguinAmount;
+            if (neighbor.canSendPenguins(myIceberg, enemyAmount - myAmount + 1)) {
+                neighbor.sendPenguins(myIceberg, Math.abs(enemyAmount - myAmount + 1));
+            }
+        }
+    }
+    
+
 }
